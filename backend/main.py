@@ -91,7 +91,7 @@ async def _run_and_capture(run_id: str, idea: str, queue: asyncio.Queue):
 # ─── POST /api/analyze ────────────────────────────────────────────────────────
 
 @app.post('/api/analyze', response_model=AnalyzeResponse)
-@limiter.limit('5/minute;50/day')
+@limiter.limit('1/30 minutes')
 async def analyze(request: Request, body: IdeaRequest):
     clean_idea = sanitize(body.idea)
     run_id = str(uuid.uuid4())

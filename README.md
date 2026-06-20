@@ -2,10 +2,13 @@
 
 > Validate your startup idea in 60 seconds using 7 specialized AI agents.
 
+**Live Demo:** [https://ventureiq.onrender.com](https://ventureiq.onrender.com)
+
 ![VentureIQ](https://img.shields.io/badge/VentureIQ-Multi--Agent%20AI-blue?style=for-the-badge)
 ![LangGraph](https://img.shields.io/badge/LangGraph-Pipeline-6366f1?style=for-the-badge)
 ![FastAPI](https://img.shields.io/badge/FastAPI-Backend-009688?style=for-the-badge)
 ![React](https://img.shields.io/badge/React-Frontend-61DAFB?style=for-the-badge)
+![Live](https://img.shields.io/badge/Live-ventureiq.onrender.com-success?style=for-the-badge)
 
 ---
 
