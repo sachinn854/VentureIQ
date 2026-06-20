@@ -68,8 +68,8 @@ class MarketOutput(BaseModel):
 
 class CompetitorInfo(BaseModel):
     name: str
-    strengths: list[str] = Field(max_length=2)
-    weaknesses: list[str] = Field(max_length=2)
+    strengths: list[str]
+    weaknesses: list[str]
     funding: str = "Unknown"
 
 
