@@ -5,6 +5,7 @@ import AgentGraph     from './components/AgentGraph'
 import StreamingPanel from './components/StreamingPanel'
 import VerdictCard    from './components/VerdictCard'
 import ChatPanel      from './components/ChatPanel'
+import ChatWidget     from './components/ChatWidget'
 import { useWebSocket } from './hooks/useWebSocket'
 
 const INITIAL_STATUSES = {}
@@ -223,20 +224,6 @@ export default function App() {
                   </Section>
                 )}
               </AnimatePresence>
-
-              {/* Chat */}
-              <AnimatePresence>
-                {finalReport && runIdRef.current && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: 0.3 }}
-                  >
-                    <Section label="Ask VentureIQ">
-                      <ChatPanel runId={runIdRef.current} />
-                    </Section>
-                  </motion.div>
-                )}
-              </AnimatePresence>
             </motion.div>
           )}
         </AnimatePresence>
@@ -247,6 +234,13 @@ export default function App() {
           </p>
         )}
       </main>
+
+      {/* Floating Chat Widget — appears after verdict */}
+      <AnimatePresence>
+        {finalReport && runIdRef.current && (
+          <ChatWidget runId={runIdRef.current} />
+        )}
+      </AnimatePresence>
     </div>
   )
 }

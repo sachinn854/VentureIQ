@@ -165,9 +165,10 @@ async def download_pdf(run_id: str):
 
 def _build_report_context(report: FinalReport, idea: str) -> str:
     r = report
-    strengths  = '\n'.join(f'  - {s}' for s in (r.strengths  or []))
-    concerns   = '\n'.join(f'  - {c}' for c in (r.concerns   or []))
-    next_steps = '\n'.join(f'  - {n}' for n in (r.next_steps or []))
+    strengths  = '\n'.join(f'  - {s}' for s in (r.top_3_strengths        or []))
+    risks      = '\n'.join(f'  - {s}' for s in (r.top_3_risks             or []))
+    next_steps = '\n'.join(f'  - {n}' for n in (r.recommended_next_steps  or []))
+    scores     = '\n'.join(f'  - {k}: {v}/10' for k, v in (r.score_breakdown or {}).items())
     return f"""You are VentureIQ, an expert AI startup analyst. You have just completed a full analysis of the following startup idea.
 
 STARTUP IDEA:
@@ -179,20 +180,17 @@ ANALYSIS RESULTS:
 - Confidence: {r.confidence}%
 - Executive Summary: {r.executive_summary}
 
-Strengths:
+Top Strengths:
 {strengths}
 
-Key Concerns:
-{concerns}
+Top Risks:
+{risks}
 
 Recommended Next Steps:
 {next_steps}
 
-Agent Scores:
-- Market Research: {r.market_score}/10
-- Competitor Analysis: {r.competition_score}/10
-- Financial Feasibility: {r.financial_score}/10
-- Risk Assessment: {r.risk_score}/10
+Score Breakdown:
+{scores}
 
 Answer the user's questions based on this analysis. Be concise, specific, and helpful. Reference actual data from the report where relevant. Do not use markdown formatting like ** or ## in your response."""
 

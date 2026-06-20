@@ -72,7 +72,7 @@ function TypingIndicator() {
   )
 }
 
-export default function ChatPanel({ runId }) {
+export default function ChatPanel({ runId, onClose }) {
   const [messages, setMessages] = useState([
     { role: 'assistant', text: 'Analysis complete! Ask me anything about this startup — market opportunity, risks, financials, competitors, or next steps.' }
   ])
@@ -137,9 +137,16 @@ export default function ChatPanel({ runId }) {
           <p className="text-sm font-bold text-slate-800">Ask VentureIQ</p>
           <p className="text-[10px] text-slate-400">Ask anything about this analysis</p>
         </div>
-        <div className="ml-auto flex items-center gap-1.5">
+        <div className="ml-auto flex items-center gap-2">
           <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full" />
           <span className="text-[10px] text-slate-400 font-medium">Online</span>
+          {onClose && (
+            <button onClick={onClose} className="ml-1 text-slate-400 hover:text-slate-600 transition-colors">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
         </div>
       </div>
 
