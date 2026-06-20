@@ -18,7 +18,7 @@
 
 > ⚠️ First load may take ~30 seconds (free tier cold start). After that, it's fast.
 
-https://github.com/sachinn854/VentureIQ/raw/master/demo/VentureIQ%20%E2%80%94%20AI-Powered%20Multi-Agent%20Startup%20Validator.mp4
+https://github.com/user-attachments/assets/2e213096-9801-4e74-b79e-dcb7db251e28
 
 ---
 
