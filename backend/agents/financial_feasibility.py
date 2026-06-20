@@ -1,10 +1,8 @@
-from pydantic import BaseModel
-from langchain_openai import ChatOpenAI
+﻿from pydantic import BaseModel
+from backend.llm_factory import get_llm
 from backend.schemas.models import StartupState, FinancialOutput, RevenueProjection, ProcessedIdea
 from backend.tools.search_tool import search_many
 from backend.tools.calculator_tool import ltv_cac_ratio, breakeven_months, score_financials
-from backend.config import settings
-
 
 class _FinancialRaw(BaseModel):
     revenue_model: str
@@ -14,15 +12,7 @@ class _FinancialRaw(BaseModel):
     year2_revenue_inr: float
     year3_revenue_inr: float
     summary: str
-
-
-_llm = ChatOpenAI(
-    model=settings.model_name,
-    api_key=settings.openrouter_api_key,
-    base_url="https://openrouter.ai/api/v1",
-    max_tokens=2048,
-    max_retries=3,
-).with_structured_output(_FinancialRaw)
+_llm = get_llm(max_tokens=2048).with_structured_output(_FinancialRaw)
 
 _SYSTEM = """You are a startup financial analyst.
 Based on the idea and search results, estimate:
@@ -35,16 +25,12 @@ Based on the idea and search results, estimate:
 - summary: 2-3 sentence financial outlook
 
 Use Indian market benchmarks. Be realistic, not optimistic. All values must be numbers (no currency symbols)."""
-
-
 def _fmt_inr(val: float) -> str:
     if val >= 1e7:
-        return f"₹{val / 1e7:.1f}Cr"
+        return f"â‚¹{val / 1e7:.1f}Cr"
     elif val >= 1e5:
-        return f"₹{val / 1e5:.1f}L"
-    return f"₹{val:,.0f}"
-
-
+        return f"â‚¹{val / 1e5:.1f}L"
+    return f"â‚¹{val:,.0f}"
 async def run_financial_feasibility(state: StartupState) -> dict:
     events = list(state.get("stream_events", []))
     errors = list(state.get("agent_errors", []))
@@ -96,8 +82,6 @@ async def run_financial_feasibility(state: StartupState) -> dict:
         errors.append(f"financial_feasibility: {str(e)}")
         events.append({"type": "error", "agent": "financial_feasibility", "message": str(e)})
         return {"financial_feasibility": None, "stream_events": events, "agent_errors": errors}
-
-
 def _format_results(queries: list[str], results: list[list[dict]]) -> str:
     lines = []
     for query, hits in zip(queries, results):
@@ -107,3 +91,4 @@ def _format_results(queries: list[str], results: list[list[dict]]) -> str:
         for h in hits:
             lines.append(f"- [{h['title']}]: {h['content'][:300]}")
     return "\n".join(lines)
+

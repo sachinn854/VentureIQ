@@ -1,26 +1,16 @@
-import logging
-from langchain_openai import ChatOpenAI
+﻿import logging
+from backend.llm_factory import get_llm
 from backend.schemas.models import StartupState, CompetitorOutput, CompetitorInfo, ProcessedIdea
 from backend.tools.search_tool import search_many
-from backend.config import settings
-
 logger = logging.getLogger(__name__)
 
-_llm = ChatOpenAI(
-    model=settings.model_name,
-    api_key=settings.openrouter_api_key,
-    base_url="https://openrouter.ai/api/v1",
-    max_tokens=4096,
-    max_retries=3,
-).with_structured_output(CompetitorOutput)
+_llm = get_llm(max_tokens=4096).with_structured_output(CompetitorOutput)
 
-_SYSTEM = """You are a competitive intelligence analyst. Be concise — short sentences only.
+_SYSTEM = """You are a competitive intelligence analyst. Be concise â€” short sentences only.
 Identify exactly 3 competitors for the given startup idea.
 Each competitor: name, exactly 2 strengths (max 8 words each), exactly 2 weaknesses (max 8 words each), funding.
 market_gap: 1 sentence. differentiation_opportunity: 1 sentence. summary: 2 sentences max.
-competition_score: 0–10 where 10 = almost no competition. Must be 0–10, never negative."""
-
-
+competition_score: 0â€“10 where 10 = almost no competition. Must be 0â€“10, never negative."""
 async def run_competitor_analysis(state: StartupState) -> dict:
     new_events = [{"type": "agent_start", "agent": "competitor_analysis"}]
 
@@ -49,8 +39,6 @@ async def run_competitor_analysis(state: StartupState) -> dict:
         logger.error(f"competitor_analysis FAILED: {type(e).__name__}: {e}", exc_info=True)
         new_events.append({"type": "error", "agent": "competitor_analysis", "message": str(e)})
         return {"competitor_analysis": None, "stream_events": new_events, "agent_errors": [f"competitor_analysis: {e}"]}
-
-
 def _format_results(queries: list[str], results: list[list[dict]]) -> str:
     lines = []
     for query, hits in zip(queries, results):
@@ -60,3 +48,4 @@ def _format_results(queries: list[str], results: list[list[dict]]) -> str:
         for h in hits:
             lines.append(f"- [{h['title']}]: {h['content'][:300]}")
     return "\n".join(lines)
+

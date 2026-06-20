@@ -1,18 +1,10 @@
-import logging
-from langchain_openai import ChatOpenAI
+﻿import logging
+from backend.llm_factory import get_llm
 from backend.schemas.models import StartupState, RiskOutput, RiskItem, ProcessedIdea
 from backend.tools.search_tool import search_many
-from backend.config import settings
-
 logger = logging.getLogger(__name__)
 
-_llm = ChatOpenAI(
-    model=settings.model_name,
-    api_key=settings.openrouter_api_key,
-    base_url="https://openrouter.ai/api/v1",
-    max_tokens=4096,
-    max_retries=3,
-).with_structured_output(RiskOutput)
+_llm = get_llm(max_tokens=4096).with_structured_output(RiskOutput)
 
 _SYSTEM = """You are a startup risk analyst.
 Assess the following 4 risk dimensions for the given startup idea:
@@ -22,10 +14,8 @@ Assess the following 4 risk dimensions for the given startup idea:
 - competitive_risk: Can well-funded incumbents easily copy or crush this?
 
 Each risk must have: level (Low/Medium/High), description (1-2 sentences), mitigation (1 sentence on how to reduce it).
-risk_score: 0–10 where 10 = very low overall risk, 0 = extremely risky. Must be 0–10, never negative.
-summary: 2–3 sentence overall risk overview."""
-
-
+risk_score: 0â€“10 where 10 = very low overall risk, 0 = extremely risky. Must be 0â€“10, never negative.
+summary: 2â€“3 sentence overall risk overview."""
 async def run_risk_assessment(state: StartupState) -> dict:
     new_events = [{"type": "agent_start", "agent": "risk_assessment"}]
 
@@ -52,8 +42,6 @@ async def run_risk_assessment(state: StartupState) -> dict:
         logger.error(f"risk_assessment FAILED: {type(e).__name__}: {e}", exc_info=True)
         new_events.append({"type": "error", "agent": "risk_assessment", "message": str(e)})
         return {"risk_assessment": None, "stream_events": new_events, "agent_errors": [f"risk_assessment: {e}"]}
-
-
 def _format_results(queries: list[str], results: list[list[dict]]) -> str:
     lines = []
     for query, hits in zip(queries, results):
@@ -63,3 +51,4 @@ def _format_results(queries: list[str], results: list[list[dict]]) -> str:
         for h in hits:
             lines.append(f"- [{h['title']}]: {h['content'][:300]}")
     return "\n".join(lines)
+

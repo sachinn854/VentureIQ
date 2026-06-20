@@ -1,25 +1,15 @@
-import logging
-from langchain_openai import ChatOpenAI
+﻿import logging
+from backend.llm_factory import get_llm
 from backend.schemas.models import StartupState, MarketOutput, ProcessedIdea
 from backend.tools.search_tool import search_many
-from backend.config import settings
-
 logger = logging.getLogger(__name__)
 
-_llm = ChatOpenAI(
-    model=settings.model_name,
-    api_key=settings.openrouter_api_key,
-    base_url="https://openrouter.ai/api/v1",
-    max_tokens=4096,
-    max_retries=3,
-).with_structured_output(MarketOutput)
+_llm = get_llm(max_tokens=4096).with_structured_output(MarketOutput)
 
-_SYSTEM = """You are a market research analyst. Be concise — short sentences only.
-Estimate TAM/SAM/SOM as single values (e.g. "₹12,000 Cr"), growth_rate as a short phrase (e.g. "28% CAGR").
+_SYSTEM = """You are a market research analyst. Be concise â€” short sentences only.
+Estimate TAM/SAM/SOM as single values (e.g. "â‚¹12,000 Cr"), growth_rate as a short phrase (e.g. "28% CAGR").
 demand_signals: exactly 3 items, max 10 words each. summary: 2 sentences max.
-market_score: 0–10. Never return 0 unless market truly doesn't exist."""
-
-
+market_score: 0â€“10. Never return 0 unless market truly doesn't exist."""
 async def run_market_research(state: StartupState) -> dict:
     new_events = [{"type": "agent_start", "agent": "market_research"}]
 
@@ -48,8 +38,6 @@ async def run_market_research(state: StartupState) -> dict:
         logger.error(f"market_research FAILED: {type(e).__name__}: {e}", exc_info=True)
         new_events.append({"type": "error", "agent": "market_research", "message": str(e)})
         return {"market_research": None, "stream_events": new_events, "agent_errors": [f"market_research: {e}"]}
-
-
 def _format_results(queries: list[str], results: list[list[dict]]) -> str:
     lines = []
     for query, hits in zip(queries, results):
@@ -59,3 +47,4 @@ def _format_results(queries: list[str], results: list[list[dict]]) -> str:
         for h in hits:
             lines.append(f"- [{h['title']}]: {h['content'][:300]}")
     return "\n".join(lines)
+

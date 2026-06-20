@@ -11,8 +11,8 @@ from fastapi.staticfiles import StaticFiles
 from slowapi.errors import RateLimitExceeded
 
 from backend.config import settings
-from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
+from backend.llm_factory import get_llm
 
 from backend.schemas.models import IdeaRequest, AnalyzeResponse, FinalReport, ChatRequest, ChatResponse
 from backend.security.input_sanitizer import sanitize
@@ -217,13 +217,7 @@ async def chat(request: Request, run_id: str, body: ChatRequest):
 
     messages.append(HumanMessage(content=body.message))
 
-    llm = ChatOpenAI(
-        model=settings.model_name,
-        api_key=settings.openrouter_api_key,
-        base_url='https://openrouter.ai/api/v1',
-        max_tokens=512,
-        max_retries=2,
-    )
+    llm = get_llm(max_tokens=512, max_retries=2)
 
     try:
         ai_response = await llm.ainvoke(messages)

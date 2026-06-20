@@ -1,17 +1,9 @@
-import logging
-from langchain_openai import ChatOpenAI
+﻿import logging
+from backend.llm_factory import get_llm
 from backend.schemas.models import StartupState, PivotOutput, FinalReport
-from backend.config import settings
-
 logger = logging.getLogger(__name__)
 
-_llm = ChatOpenAI(
-    model=settings.model_name,
-    api_key=settings.openrouter_api_key,
-    base_url="https://openrouter.ai/api/v1",
-    max_tokens=4096,
-    max_retries=3,
-).with_structured_output(PivotOutput)
+_llm = get_llm(max_tokens=4096).with_structured_output(PivotOutput)
 
 _SYSTEM = """You are a startup pivot strategist. The startup idea has received a NO-GO verdict.
 Your job is to suggest 3 concrete pivot strategies that could make this idea viable.
@@ -20,13 +12,11 @@ Each pivot must have:
 - title: short name of the pivot (e.g. "B2B Enterprise Pivot", "Niche Down to Tier-2 Cities")
 - description: 2-3 sentences explaining the pivot strategy
 - key_change: the single most important thing that changes (target customer / business model / geography / product scope)
-- potential: "High" / "Medium" / "Low" — how promising this pivot is
+- potential: "High" / "Medium" / "Low" â€” how promising this pivot is
 
 reasoning: 1-2 sentences explaining WHY the original idea needs pivoting.
 
 Be specific to the Indian market. Suggest pivots that address the actual weaknesses identified."""
-
-
 async def run_pivot_advisor(state: StartupState) -> dict:
     new_events = [{"type": "agent_start", "agent": "pivot_advisor"}]
 
@@ -47,8 +37,6 @@ async def run_pivot_advisor(state: StartupState) -> dict:
         logger.error(f"pivot_advisor FAILED: {type(e).__name__}: {e}", exc_info=True)
         new_events.append({"type": "error", "agent": "pivot_advisor", "message": str(e)})
         return {"pivot_suggestions": None, "stream_events": new_events, "agent_errors": [f"pivot_advisor: {e}"]}
-
-
 def _build_context(state: StartupState, report: FinalReport) -> str:
     parts = [f"## Original Idea\n{state['raw_idea']}\n"]
 
@@ -70,3 +58,4 @@ def _build_context(state: StartupState, report: FinalReport) -> str:
         parts.append(f"## Financial Issue\n{financial.summary} (Score: {financial.financial_score}/10)")
 
     return "\n\n".join(parts)
+
