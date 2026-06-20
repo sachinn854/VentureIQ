@@ -9,7 +9,10 @@ from fastapi.responses import JSONResponse, Response
 from slowapi.errors import RateLimitExceeded
 
 from backend.config import settings
-from backend.schemas.models import IdeaRequest, AnalyzeResponse, FinalReport
+from langchain_openai import ChatOpenAI
+from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
+
+from backend.schemas.models import IdeaRequest, AnalyzeResponse, FinalReport, ChatRequest, ChatResponse
 from backend.security.input_sanitizer import sanitize
 from backend.security.rate_limiter import limiter
 from backend.graph.startup_graph import run_graph
@@ -44,8 +47,9 @@ async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
 
 # ─── In-memory stores ─────────────────────────────────────────────────────────
 
-_queues:  dict[str, asyncio.Queue]           = {}
-_reports: dict[str, tuple[FinalReport, str]] = {}
+_queues:        dict[str, asyncio.Queue]           = {}
+_reports:       dict[str, tuple[FinalReport, str]] = {}
+_chat_histories: dict[str, list[dict]]             = {}
 
 
 async def _run_and_capture(run_id: str, idea: str, queue: asyncio.Queue):
@@ -155,6 +159,90 @@ async def download_pdf(run_id: str):
         media_type='application/pdf',
         headers={'Content-Disposition': f'attachment; filename="startup-report-{run_id[:8]}.pdf"'},
     )
+
+
+# ─── POST /api/chat/{run_id} ─────────────────────────────────────────────────
+
+def _build_report_context(report: FinalReport, idea: str) -> str:
+    r = report
+    strengths  = '\n'.join(f'  - {s}' for s in (r.strengths  or []))
+    concerns   = '\n'.join(f'  - {c}' for c in (r.concerns   or []))
+    next_steps = '\n'.join(f'  - {n}' for n in (r.next_steps or []))
+    return f"""You are VentureIQ, an expert AI startup analyst. You have just completed a full analysis of the following startup idea.
+
+STARTUP IDEA:
+{idea}
+
+ANALYSIS RESULTS:
+- Verdict: {r.verdict}
+- Overall Score: {r.overall_score}/10
+- Confidence: {r.confidence}%
+- Executive Summary: {r.executive_summary}
+
+Strengths:
+{strengths}
+
+Key Concerns:
+{concerns}
+
+Recommended Next Steps:
+{next_steps}
+
+Agent Scores:
+- Market Research: {r.market_score}/10
+- Competitor Analysis: {r.competition_score}/10
+- Financial Feasibility: {r.financial_score}/10
+- Risk Assessment: {r.risk_score}/10
+
+Answer the user's questions based on this analysis. Be concise, specific, and helpful. Reference actual data from the report where relevant. Do not use markdown formatting like ** or ## in your response."""
+
+
+@app.post('/api/chat/{run_id}', response_model=ChatResponse)
+@limiter.limit('30/minute')
+async def chat(request: Request, run_id: str, body: ChatRequest):
+    if run_id not in _reports:
+        return JSONResponse(status_code=404, content={'detail': 'Report not found. Run an analysis first.'})
+
+    report, idea = _reports[run_id]
+    history = _chat_histories.get(run_id, [])
+
+    system_prompt = _build_report_context(report, idea)
+    messages = [SystemMessage(content=system_prompt)]
+
+    for msg in history[-10:]:
+        if msg['role'] == 'user':
+            messages.append(HumanMessage(content=msg['content']))
+        else:
+            messages.append(AIMessage(content=msg['content']))
+
+    messages.append(HumanMessage(content=body.message))
+
+    llm = ChatOpenAI(
+        model=settings.model_name,
+        api_key=settings.openrouter_api_key,
+        base_url='https://openrouter.ai/api/v1',
+        max_tokens=512,
+        max_retries=2,
+    )
+
+    try:
+        ai_response = await llm.ainvoke(messages)
+        reply = ai_response.content.strip()
+    except Exception as e:
+        logger.error(f"[{run_id[:8]}] Chat LLM error: {e}")
+        return JSONResponse(status_code=500, content={'detail': 'AI response failed. Please try again.'})
+
+    if run_id not in _chat_histories:
+        _chat_histories[run_id] = []
+    _chat_histories[run_id].append({'role': 'user',      'content': body.message})
+    _chat_histories[run_id].append({'role': 'assistant', 'content': reply})
+
+    if len(_chat_histories) > 50:
+        oldest = next(iter(_chat_histories))
+        _chat_histories.pop(oldest)
+
+    logger.info(f"[{run_id[:8]}] Chat — Q: {body.message[:60]}...")
+    return ChatResponse(response=reply)
 
 
 # ─── GET /health ──────────────────────────────────────────────────────────────

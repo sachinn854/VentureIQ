@@ -21,6 +21,19 @@ class AnalyzeResponse(BaseModel):
     run_id: str
 
 
+class ChatRequest(BaseModel):
+    message: Annotated[str, Field(min_length=1, max_length=1000)]
+
+    @field_validator("message")
+    @classmethod
+    def strip_whitespace(cls, v: str) -> str:
+        return v.strip()
+
+
+class ChatResponse(BaseModel):
+    response: str
+
+
 # ─── Per-Agent Output Models ──────────────────────────────────────────────────
 
 class ProcessedIdea(BaseModel):
