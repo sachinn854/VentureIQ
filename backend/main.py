@@ -45,7 +45,7 @@ app.state.limiter = limiter
 
 @app.exception_handler(RateLimitExceeded)
 async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
-    return JSONResponse(status_code=429, content={'detail': 'Too many requests. Please wait and try again.'})
+    return JSONResponse(status_code=429, content={'detail': 'RATE_LIMIT'})
 
 # ─── In-memory stores ─────────────────────────────────────────────────────────
 
@@ -91,7 +91,7 @@ async def _run_and_capture(run_id: str, idea: str, queue: asyncio.Queue):
 # ─── POST /api/analyze ────────────────────────────────────────────────────────
 
 @app.post('/api/analyze', response_model=AnalyzeResponse)
-@limiter.limit('1/30 minutes')
+@limiter.limit('1/10 minutes')
 async def analyze(request: Request, body: IdeaRequest):
     clean_idea = sanitize(body.idea)
     run_id = str(uuid.uuid4())

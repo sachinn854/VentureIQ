@@ -12,6 +12,16 @@
 
 ---
 
+## Demo
+
+**Live App:** [https://ventureiq.onrender.com](https://ventureiq.onrender.com)
+
+> ⚠️ First load may take ~30 seconds (free tier cold start). After that, it's fast.
+
+https://github.com/sachinn854/VentureIQ/raw/master/demo/VentureIQ%20%E2%80%94%20AI-Powered%20Multi-Agent%20Startup%20Validator.mp4
+
+---
+
 ## What is VentureIQ?
 
 Every year, thousands of Indian founders waste months and lakhs of rupees building products nobody wants — simply because they skipped proper validation. Market research, competitor analysis, financial modeling, and risk assessment each take days when done manually.

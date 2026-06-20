@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import IdeaInput      from './components/IdeaInput'
 import AgentGraph     from './components/AgentGraph'
@@ -25,6 +25,7 @@ export default function App() {
   const [finalReport, setFinalReport]       = useState(null)
   const [pivotSuggestions, setPivotSuggestions] = useState(null)
   const [error, setError]                   = useState(null)
+  const [rateLimited, setRateLimited]       = useState(false)
   const [resetKey, setResetKey]             = useState(0)
   const runIdRef = useRef(null)
 
@@ -68,6 +69,7 @@ export default function App() {
     setFinalReport(null)
     setPivotSuggestions(null)
     setError(null)
+    setRateLimited(false)
     setResetKey(k => k + 1)
 
     try {
@@ -80,11 +82,16 @@ export default function App() {
         const body = await res.json()
         throw new Error(body.detail || 'Server error')
       }
+
       const { run_id } = await res.json()
       runIdRef.current = run_id
       connect(run_id)
     } catch (err) {
-      setError(err.message)
+      if (err.message === 'RATE_LIMIT') {
+        setRateLimited(true)
+      } else {
+        setError(err.message)
+      }
       setPhase('idle')
     }
   }
@@ -181,6 +188,23 @@ export default function App() {
         {/* ── Input ── */}
         <IdeaInput onSubmit={handleSubmit} isLoading={phase === 'running'} />
 
+        {/* ── Rate Limit Banner ── */}
+        <AnimatePresence>
+          {rateLimited && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+              className="flex items-center gap-4 bg-amber-50 border border-amber-200 px-5 py-4 rounded-2xl"
+            >
+              <span className="text-2xl">⏳</span>
+              <div>
+                <p className="text-sm font-bold text-amber-800">Analysis limit reached</p>
+                <p className="text-xs text-amber-600 mt-0.5">You can run 1 analysis per 10 minutes. Please wait and try again.</p>
+              </div>
+              <RateLimitTimer onDone={() => setRateLimited(false)} />
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* ── Error ── */}
         <AnimatePresence>
           {error && (
@@ -241,6 +265,26 @@ export default function App() {
           <ChatWidget runId={runIdRef.current} />
         )}
       </AnimatePresence>
+    </div>
+  )
+}
+
+function RateLimitTimer({ onDone }) {
+  const [secs, setSecs] = useState(10 * 60)
+
+  useEffect(() => {
+    if (secs <= 0) { onDone(); return }
+    const t = setTimeout(() => setSecs(s => s - 1), 1000)
+    return () => clearTimeout(t)
+  }, [secs, onDone])
+
+  const m = String(Math.floor(secs / 60)).padStart(2, '0')
+  const s = String(secs % 60).padStart(2, '0')
+
+  return (
+    <div className="ml-auto shrink-0 text-center">
+      <p className="text-xl font-bold text-amber-700 tabular-nums">{m}:{s}</p>
+      <p className="text-[10px] text-amber-500">remaining</p>
     </div>
   )
 }
