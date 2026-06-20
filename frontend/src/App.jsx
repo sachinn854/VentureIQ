@@ -198,7 +198,7 @@ export default function App() {
               <span className="text-2xl">⏳</span>
               <div>
                 <p className="text-sm font-bold text-amber-800">Analysis limit reached</p>
-                <p className="text-xs text-amber-600 mt-0.5">You can run 1 analysis per 10 minutes. Please wait and try again.</p>
+                <p className="text-xs text-amber-600 mt-0.5">You can run 1 analysis per 20 minutes. Please wait and try again.</p>
               </div>
               <RateLimitTimer onDone={() => setRateLimited(false)} />
             </motion.div>
@@ -270,7 +270,7 @@ export default function App() {
 }
 
 function RateLimitTimer({ onDone }) {
-  const [secs, setSecs] = useState(10 * 60)
+  const [secs, setSecs] = useState(20 * 60)
 
   useEffect(() => {
     if (secs <= 0) { onDone(); return }
